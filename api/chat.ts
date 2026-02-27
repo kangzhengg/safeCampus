@@ -18,7 +18,8 @@ export default async function handler(req: any, res: any) {
 
     const ai = getGeminiClient();
     const chat = ai.chats.create({
-      model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+      // Use the original preview chat model
+      model: "gemini-3-flash-preview",
       config: { systemInstruction: getChatSystemInstruction() },
       history: history || [],
     });
