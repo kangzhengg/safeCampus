@@ -1,23 +1,24 @@
 import { getGeminiClient, getChatSystemInstruction } from "../serverlib/gemini";
+import { jsonError, readJsonBody } from "../serverlib/http";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return jsonError(res, 405, "Method not allowed");
   }
 
   try {
-    const { history, message } = (req.body || {}) as {
+    const { history, message } = await readJsonBody<{
       history?: { role: "user" | "model"; parts: { text: string }[] }[];
       message?: string;
-    };
+    }>(req);
 
     if (!message) {
-      return res.status(400).json({ error: "Message is required" });
+      return jsonError(res, 400, "Message is required");
     }
 
     const ai = getGeminiClient();
     const chat = ai.chats.create({
-      model: "gemini-3-flash-preview",
+      model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
       config: { systemInstruction: getChatSystemInstruction() },
       history: history || [],
     });
@@ -26,7 +27,7 @@ export default async function handler(req: any, res: any) {
     return res.json({ reply: result.text || "" });
   } catch (err: any) {
     const msg = typeof err?.message === "string" ? err.message : "Failed";
-    return res.status(500).json({ error: msg });
+    return jsonError(res, 500, msg);
   }
 }
 

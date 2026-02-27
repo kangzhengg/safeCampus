@@ -25,7 +25,14 @@ export const analyzeContent = async (text: string, imageBase64?: string): Promis
   });
 
   if (!response.ok) {
-    throw new Error("Failed to analyze content");
+    let detail = "";
+    try {
+      const data = (await response.json()) as any;
+      detail = data?.error ? `: ${data.error}` : "";
+    } catch {
+      // ignore
+    }
+    throw new Error(`Failed to analyze content${detail}`);
   }
 
   return (await response.json()) as ScamAnalysis;
@@ -44,7 +51,14 @@ export const getChatResponse = async (history: ChatHistoryItem[], message: strin
   });
 
   if (!response.ok) {
-    throw new Error("Failed to get chat response");
+    let detail = "";
+    try {
+      const data = (await response.json()) as any;
+      detail = data?.error ? `: ${data.error}` : "";
+    } catch {
+      // ignore
+    }
+    throw new Error(`Failed to get chat response${detail}`);
   }
 
   const data = (await response.json()) as { reply: string };

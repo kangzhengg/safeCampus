@@ -1,18 +1,19 @@
 import { getGeminiClient, getAnalyzeConfig } from "../serverlib/gemini";
+import { jsonError, readJsonBody } from "../serverlib/http";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return jsonError(res, 405, "Method not allowed");
   }
 
   try {
-    const { text, imageBase64 } = (req.body || {}) as {
+    const { text, imageBase64 } = await readJsonBody<{
       text?: string;
       imageBase64?: string;
-    };
+    }>(req);
 
     if (!text && !imageBase64) {
-      return res.status(400).json({ error: "Text or image is required" });
+      return jsonError(res, 400, "Text or image is required");
     }
 
     const ai = getGeminiClient();
@@ -33,16 +34,22 @@ export default async function handler(req: any, res: any) {
       contents: { parts },
       config: {
         systemInstruction: cfg.systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: cfg.responseSchema as any,
+        // Avoid strict schema in serverless; we'll parse JSON ourselves.
       },
     });
 
-    const parsed = JSON.parse(response.text || "{}");
+    const raw = (response.text || "").trim();
+    // Try strict JSON parse first, else extract first JSON object from text.
+    const jsonText =
+      raw.startsWith("{") && raw.endsWith("}")
+        ? raw
+        : raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
+
+    const parsed = JSON.parse(jsonText || "{}");
     return res.json(parsed);
   } catch (err: any) {
     const msg = typeof err?.message === "string" ? err.message : "Failed";
-    return res.status(500).json({ error: msg });
+    return jsonError(res, 500, msg);
   }
 }
 

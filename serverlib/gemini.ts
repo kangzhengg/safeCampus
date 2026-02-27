@@ -34,9 +34,14 @@ You must respond STRICTLY in valid JSON format. Do not include any conversationa
   "safety_recommendation": "<string: One actionable piece of advice, e.g., 'Do not click the link. Verify directly with the university IT desk.'>"
 }`;
 
+  // Use a stable model name for production deployments.
+  // You can override via Vercel env var GEMINI_MODEL if needed.
+  const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+
   return {
-    model: "gemini-3-flash-preview",
+    model,
     systemInstruction,
+    // Keep schema available for local usage, but serverless deploys can be picky.
     responseSchema: {
       type: Type.OBJECT,
       properties: {
@@ -44,7 +49,10 @@ You must respond STRICTLY in valid JSON format. Do not include any conversationa
         risk_level: { type: Type.STRING },
         scam_type: { type: Type.STRING },
         explanation: { type: Type.ARRAY, items: { type: Type.STRING } },
-        highlighted_keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+        highlighted_keywords: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING },
+        },
         safety_recommendation: { type: Type.STRING },
       },
       required: [
